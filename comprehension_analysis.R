@@ -2,6 +2,8 @@
 ## SETUP ##
 ###########
 
+setwd("C:/Users/jchoe/OneDrive/Active research/Thesis/experiments")
+
 library(tidyverse)
 library(see)
 library(stringr)
@@ -9,6 +11,8 @@ library(performance)
 library(sjPlot)
 library(lme4)
 library(afex)
+
+options(dplyr.summarise.inform = FALSE)
 
 # Copied from the PennController Tutorial by Jeremy Zehr & Florian Schwarz (https://www.pcibex.net/wiki/r-script/)
 read.pcibex <- function(filepath, auto.colnames=TRUE, fun.col=function(col,cols){cols[cols==col]<-paste(col,"Ibex",sep=".");return(cols)}) {
@@ -46,7 +50,7 @@ read.pcibex <- function(filepath, auto.colnames=TRUE, fun.col=function(col,cols)
 }
 
 # load data
-result <- as_tibble(read.pcibex("data/result.txt"))
+result <- as_tibble(read.pcibex("comprehension/result.txt"))
 
 
 
@@ -104,7 +108,7 @@ data_times <- data_times %>%
 
 # Add keys
 
-data <- inner_join(data_times, read_csv("data/Key.csv"), by = "Item") %>% 
+data <- inner_join(data_times, read_csv("comprehension/key.csv"), by = "Item") %>% 
   select(-c("PennElementType", "End", "Start", "QuestionTarget", "Pitch")) %>% 
   mutate(Accuracy = ifelse(Value == "End", NA, as.numeric(Answer == Value)),
          Type = case_when(grepl("^f", Item) ~ "Filler",
@@ -115,6 +119,51 @@ data <- inner_join(data_times, read_csv("data/Key.csv"), by = "Item") %>%
 
 data <- data %>% 
   mutate(logRT = log(Time))
+
+
+
+
+
+
+#############################
+#                           #
+#                           #
+#     Data Exploration      #
+#                           #
+#                           #
+#############################
+
+
+# reasponse times by trial types
+trial_type_RT_plot <- all_data %>%
+  filter(Time < 5000) %>% 
+  ggplot(aes(Type, Time)) +
+  geom_violin() +
+  geom_boxplot(width = 0.2) +
+  facet_wrap(~Cond)
+
+# subject accuracy by trial types
+trial_type_acc_plot <- all_data %>%
+  group_by(Subject, Cond, Type) %>%
+  summarize(Accuracy = mean(Accuracy)) %>%
+  filter(Type == "Catch" && Accuracy != 0, !is.na(Accuracy)) %>% 
+  ggplot(aes(Type, Accuracy)) +
+  geom_boxplot() +
+  geom_hline(aes(yintercept = 0.5), linetype = 2, color = "red") +
+  facet_wrap(~Cond)
+
+
+
+
+
+#############################
+#                           #
+#                           #
+#     Data Preparation      #
+#                           #
+#                           #
+#############################
+
 
 ################################
 ## Exclude Trials an Subjects ##
@@ -132,8 +181,7 @@ exclude <- data %>%
 data <- data %>%
   filter(!Subject %in% exclude,
          !is.na(Accuracy),
-         between(Time, 300, 5000),
-         Type == "Critical")
+         between(Time, 300, 5000))
 
 # give number IDs to subjects
 subj_ID <- tibble(Subject = unique(data$Subject),
@@ -143,16 +191,28 @@ data <- inner_join(data, subj_ID, by = "Subject") %>%
   rename(Subject_orig_ID = Subject,
          Subject = Subject_ID)
 
+###############################
+## Keep Only Critical Trials ##
+###############################
+
+all_data <- data
+
+data <- data %>% 
+  filter(Type == "Critical")
+
 ####################
 ## Add Item Norms ##
 ####################
 
 data <- data %>%
-  inner_join(read_csv("data/Item_norms.csv"), by = "Item") %>% 
+  inner_join(read_csv("Item_norms.csv"), by = "Item") %>% 
   rename(Transitivity = trans_bias,
          SemanticFit = plaus_bias) %>% 
   # Change of language from plausibility -> semantic fit
   mutate(SemanticFit = -SemanticFit)
+
+
+
 
 
 
@@ -163,7 +223,6 @@ data <- data %>%
 #                           #
 #                           #
 #############################
-
 
 
 ###################
@@ -257,6 +316,82 @@ Item_RT_plot <- data %>%
   facet_wrap(~Item, ncol = 6) +
   theme_modern()
 
+
+# Condition RT rainplot
+
+library(mdthemes)
+library(ggtext)
+extrafont::loadfonts(device = 'win')
+devtools::source_url("https://raw.githubusercontent.com/yjunechoe/geom_paired_violin/master/geom_paired_violin.R")
+
+RT_critical_data <- data %>%
+  filter(Accuracy == 1) %>% 
+  group_by(Item, Cond) %>%
+  summarize(RT = mean(exp(logRT))) %>%
+  ungroup() %>% 
+  mutate(type = "**Critical Items (24)**")
+
+RT_filler_data <- all_data %>%
+  filter(Type == "Filler", Accuracy == 1,
+         str_detect(Item, ("(Tyler|Arthur|Harry|Tommy|Carlson|Parker|Thomas|Kelly|Nathan|Connor|Jennie|Bella)"))) %>%
+  group_by(Item, Cond) %>%
+  summarize(RT = mean(exp(logRT))) %>% 
+  ungroup() %>% 
+  mutate(type = "**Filler Items (subset of 12)**")
+
+rainplot_data <- bind_rows(RT_critical_data,
+                           RT_filler_data)
+rainplot <- rainplot_data %>% 
+  ggplot(aes(Cond, RT, fill = Cond)) +
+  geom_paired_violin(alpha = .5) +
+  geom_point(aes(group = Item),
+             position = position_nudge(c(.15, -.15)),
+             alpha = .7, shape = 16) +
+  geom_line(aes(group = Item),
+            position = position_nudge(c(.15, -.15)),
+            linetype = 3) +
+  geom_boxplot(position = position_nudge(c(.07, -.07)),
+               alpha = .5, width = .04, outlier.shape = " ") +
+  facet_wrap(~type) +
+  md_theme_clean() +
+  scale_fill_manual(values = c("#E1BE6A", "#40B0A6")) +
+  labs(title = "Mean RT of Accurate Trials by Item",
+       y = "Response Time (ms)", x = "Pitch Accent Condition") + 
+  theme(text = element_text(family = "Verdana", size = 12),
+        plot.title = element_markdown(hjust = 0.5, size = 14),
+        strip.text = element_markdown(size = 12),
+        legend.position = 0)
+
+rainplot
+
+###### geom_flat_violin() plot
+# devtools::source_url("https://gist.githubusercontent.com/yjunechoe/830dc3300e41e003dc1218d1e905b6cb/raw/33c5838ce07b2071663e981a1492ad758230b260/geom_flat_violin.R")
+#
+# rainplot_data <- bind_rows(RT_critical_data,
+#                            RT_filler_data) %>% 
+#   mutate(group = factor(c(rep(1:24, each = 2), rep(1:12, each = 2))),
+#          offset = rep(c(-.75, .75), times = 36))
+# 
+# rainplot <- rainplot_data %>% 
+#   ggplot(aes(Cond, RT, group = group)) +
+#   geom_flat_violin(aes(Cond, RT, width = offset), inherit.aes = FALSE,
+#                    fill = rep(rep(c("#E1BE6A", "#40B0A6"), each = 512), times = 2),
+#                    alpha = 0.5) +
+#   geom_point(position = position_nudge(rainplot_data$offset * -.2),
+#              alpha = 0.7, shape = 16) +
+#   geom_line(position = position_nudge(rainplot_data$offset * -.2),
+#             linetype = 3) +
+#   geom_boxplot(aes(Cond, RT), inherit.aes = FALSE,
+#                position = position_nudge(rainplot_data$offset * -.09),
+#                fill = rep(c("#E1BE6A", "#40B0A6"), times = 2), alpha = 0.5,
+#                width = .04, outlier.shape = " ") +
+#   facet_wrap(~type) +
+#   md_theme_clean() +
+#   labs(title = "Mean RT of Accurate Trials by Item",
+#        y = "Response Time (ms)", x = "Pitch Accent Condition") + 
+#   theme(text = element_text(family = "Verdana", size = 12),
+#         plot.title = element_markdown(hjust = 0.5, size = 14),
+#         strip.text = element_markdown(size = 12))
 
 
 
