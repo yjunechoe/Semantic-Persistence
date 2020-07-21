@@ -317,81 +317,61 @@ Item_RT_plot <- data %>%
   theme_modern()
 
 
-# Condition RT rainplot
+
+
+
+
+
+# mean z-scored RT by condition rainplot
 
 library(mdthemes)
 library(ggtext)
+library(ggrepel)
 extrafont::loadfonts(device = 'win')
-devtools::source_url("https://raw.githubusercontent.com/yjunechoe/geom_paired_violin/master/geom_paired_violin.R")
+devtools::source_url("https://raw.githubusercontent.com/yjunechoe/geom_paired_raincloud/master/geom_paired_raincloud.R")
 
-RT_critical_data <- data %>%
-  filter(Accuracy == 1) %>% 
-  group_by(Item, Cond) %>%
-  summarize(RT = mean(exp(logRT))) %>%
+subject_RT_dist <- data %>% 
+  group_by(Subject) %>% 
+  summarize(mean = mean(logRT), sd = sd(logRT))
+
+rainplot_data <- all_data %>% 
+  right_join(subject_RT_dist, by = 'Subject') %>% 
+  mutate(z_RT = (logRT - mean)/sd) %>% 
+  filter(Type == "Critical" |
+           str_detect(Item, ("(Tyler|Arthur|Harry|Tommy|Carlson|Parker|Thomas|Kelly|Nathan|Connor|Jennie|Bella)")) & Accuracy == 1) %>% 
+  group_by(Item, Cond, Type) %>% 
+  summarize(z_RT = mean(z_RT)) %>% 
   ungroup() %>% 
-  mutate(type = "**Critical Items (24)**")
+  mutate(Type = ifelse(Type == "Critical",
+                "**Critical Items** (24)",
+                "**Filler Items*** (subset of 12)"))
 
-RT_filler_data <- all_data %>%
-  filter(Type == "Filler", Accuracy == 1,
-         str_detect(Item, ("(Tyler|Arthur|Harry|Tommy|Carlson|Parker|Thomas|Kelly|Nathan|Connor|Jennie|Bella)"))) %>%
-  group_by(Item, Cond) %>%
-  summarize(RT = mean(exp(logRT))) %>% 
-  ungroup() %>% 
-  mutate(type = "**Filler Items (subset of 12)**")
-
-rainplot_data <- bind_rows(RT_critical_data,
-                           RT_filler_data)
 rainplot <- rainplot_data %>% 
-  ggplot(aes(Cond, RT, fill = Cond)) +
-  geom_paired_violin(alpha = .5) +
+  mutate(Cond = ifelse(str_detect(Item, "^f"), paste0(Cond, "**"), Cond)) %>% 
+  ggplot(aes(Cond, z_RT, fill = Cond)) +
+  geom_paired_raincloud(alpha = .5) +
   geom_point(aes(group = Item),
              position = position_nudge(c(.15, -.15)),
-             alpha = .7, shape = 16) +
+             alpha = .5, shape = 16) +
   geom_line(aes(group = Item),
             position = position_nudge(c(.15, -.15)),
             linetype = 3) +
   geom_boxplot(position = position_nudge(c(.07, -.07)),
                alpha = .5, width = .04, outlier.shape = " ") +
-  facet_wrap(~type) +
+  facet_wrap(~Type, scales = "free_x") +
   md_theme_clean() +
-  scale_fill_manual(values = c("#E1BE6A", "#40B0A6")) +
-  labs(title = "Mean RT of Accurate Trials by Item",
-       y = "Response Time (ms)", x = "Pitch Accent Condition") + 
+  scale_fill_manual(values = rep(c("#E1BE6A", "#40B0A6"), each = 2)) +
+  labs(title = "Response Time Distribution between Conditions by Item",
+       y = "Mean z-scored log RT", x = "Pitch Accent Condition",
+       caption = '**Response times for accurate trials on unambiguous early-closure fillers are shown.*<br>
+       ***Fillers did not differ between conditions.*') + 
   theme(text = element_text(family = "Verdana", size = 12),
         plot.title = element_markdown(hjust = 0.5, size = 14),
         strip.text = element_markdown(size = 12),
+        axis.text = element_markdown(size = 10),
+        axis.title = element_markdown(size = 13),
+        plot.caption = element_markdown(size = 9),
         legend.position = 0)
-
-rainplot
-
-###### geom_flat_violin() plot
-# devtools::source_url("https://gist.githubusercontent.com/yjunechoe/830dc3300e41e003dc1218d1e905b6cb/raw/33c5838ce07b2071663e981a1492ad758230b260/geom_flat_violin.R")
-#
-# rainplot_data <- bind_rows(RT_critical_data,
-#                            RT_filler_data) %>% 
-#   mutate(group = factor(c(rep(1:24, each = 2), rep(1:12, each = 2))),
-#          offset = rep(c(-.75, .75), times = 36))
-# 
-# rainplot <- rainplot_data %>% 
-#   ggplot(aes(Cond, RT, group = group)) +
-#   geom_flat_violin(aes(Cond, RT, width = offset), inherit.aes = FALSE,
-#                    fill = rep(rep(c("#E1BE6A", "#40B0A6"), each = 512), times = 2),
-#                    alpha = 0.5) +
-#   geom_point(position = position_nudge(rainplot_data$offset * -.2),
-#              alpha = 0.7, shape = 16) +
-#   geom_line(position = position_nudge(rainplot_data$offset * -.2),
-#             linetype = 3) +
-#   geom_boxplot(aes(Cond, RT), inherit.aes = FALSE,
-#                position = position_nudge(rainplot_data$offset * -.09),
-#                fill = rep(c("#E1BE6A", "#40B0A6"), times = 2), alpha = 0.5,
-#                width = .04, outlier.shape = " ") +
-#   facet_wrap(~type) +
-#   md_theme_clean() +
-#   labs(title = "Mean RT of Accurate Trials by Item",
-#        y = "Response Time (ms)", x = "Pitch Accent Condition") + 
-#   theme(text = element_text(family = "Verdana", size = 12),
-#         plot.title = element_markdown(hjust = 0.5, size = 14),
-#         strip.text = element_markdown(size = 12))
 
 
 
@@ -482,7 +462,7 @@ model_performance(acc_model)
 
 summary(acc_model)
 
-tab_model(acc_model,
+acc_table <- tab_model(acc_model,
           auto.label = FALSE, show.ci = FALSE,
           show.stat = TRUE,
           collapse.se = TRUE, linebreak = FALSE,
@@ -490,7 +470,6 @@ tab_model(acc_model,
           pred.labels = c("Pitch (Verb)", "SemanticFit", "Transitivity"),
           string.est = "Estimate (SE)", string.pred = " ", string.stat = "t", string.p = "p",
           show.re.var = FALSE, show.obs = FALSE, show.r2 = FALSE, show.icc = FALSE, show.ngroups = FALSE)
-
 
 
 ##########################
@@ -501,21 +480,67 @@ tab_model(acc_model,
 acc_model_noCondition <- glmer(formula = Accuracy ~ SemanticFit + Transitivity + (1 | Subject) + (1 | Item),
                                data = data, family = binomial())
 
-anova(acc_model_noCondition, acc_model)
+acc_cond <- anova(acc_model_noCondition, acc_model)
 
 # Test significance of Semantic Fit
 acc_model_noSemanticFit <- glmer(formula = Accuracy ~ Condition + Transitivity + (1 + Condition || Subject) + (1 | Item),
                                  data = data, family = binomial())
 
-anova(acc_model_noSemanticFit, acc_model)
+acc_sem <- anova(acc_model_noSemanticFit, acc_model)
 
 # Test significance of Transitivity
 acc_model_noTransitivity <- glmer(formula = Accuracy ~ Condition + SemanticFit + (1 + Condition || Subject) + (1 | Item),
                                   data = data, family = binomial())
 
-anova(acc_model_noTransitivity, acc_model)
+acc_trans <- anova(acc_model_noTransitivity, acc_model)
 
 
+
+
+
+# Model subject random effects
+acc_subj_ranef <- acc_model %>% 
+  ranef() %>% 
+  pluck("Subject") %>% 
+  as_tibble(rownames = "ID") %>% 
+  rename(Intercept = `(Intercept)`) %>% 
+  mutate(Intercept_est = Intercept + tidy(acc_model)[[1, "estimate"]],
+         Condition_est = Condition + tidy(acc_model)[[2, "estimate"]]) %>% 
+  select(!Intercept:Condition) %>% 
+  pivot_longer(-ID, names_pattern = "(.*)_(.*)", names_to = c("term", "measure")) %>% 
+  mutate(conf_int = ifelse(term == "Intercept", tidy(acc_model)[[1, "std.error"]], tidy(acc_model)[[2, "std.error"]]),
+         conf_int = conf_int * 1.96,
+         ID = tidytext::reorder_within(ID, value, term),
+         term = ifelse(term == "Condition", "Condition Slope", term),
+         term = glue::glue("**{term}**"),
+         term = fct_reorder(term, value, 'max', .desc=T))
+
+acc_subj_ranef_plot <- acc_subj_ranef %>% 
+  ggplot(aes(ID, value)) + 
+  facet_wrap(~term, scales = "free") +
+  tidytext::scale_x_reordered() +
+  geom_errorbar(aes(ymin = value - conf_int, ymax = value + conf_int),
+                width = 0, color = 'grey50') +
+  geom_point(color = 'grey20') +
+  geom_hline(aes(yintercept = 0), linetype = 2, color = 'red') +
+  # geom_text(data = tibble(x = c(25, 20), y = c(.1, .02),
+  #                         label = c("Above chance accuracy on average", "Reliable negative effect of verb accent"),
+  #                         term = fct_inorder(levels(acc_subj_ranef$term))),
+  #           aes(x, y, label = label), inherit.aes = FALSE, color = 'red') +
+  md_theme_clean() +
+  labs(title = "Accuracy Model Subject Random Effects",
+       y = "Log Odds", x = "Subjects (_n_=60)") + 
+  theme(text = element_text(family = "Verdana", size = 12),
+        plot.title = element_markdown(hjust = 0.5, size = 18),
+        strip.text = element_markdown(size = 14),
+        axis.text = element_markdown(size = 10),
+        axis.title = element_markdown(size = 14),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.caption = element_markdown(size = 9),
+        legend.position = 0)
+
+#ggsave("acc_subj_ranef.png", acc_subj_ranef_plot, width = 10, height = 5, units = 'in', dpi = 300)
 
 #############################
 #                           #
@@ -593,7 +618,7 @@ model_performance(RT_model)
 
 summary(RT_model)
 
-tab_model(RT_model,
+RT_table <- tab_model(RT_model,
           auto.label = FALSE, show.ci = FALSE,
           show.stat = TRUE,
           collapse.se = TRUE, linebreak = FALSE,
@@ -612,22 +637,61 @@ tab_model(RT_model,
 RT_model_noCondition <-lmer(formula = logRT ~ SemanticFit + Transitivity + Accuracy + (1 | Subject) + (1 | Item),
                             data = data, REML = FALSE)
 
-anova(RT_model_noCondition, RT_model)
+RT_cond <- anova(RT_model_noCondition, RT_model)
 
 # Test significance of Semantic Fit
 RT_model_noSemanticFit <- lmer(formula = logRT ~ Condition + Transitivity + Accuracy + (1 | Subject) + (1 + Condition || Item),
                                data = data, REML = FALSE)
 
-anova(RT_model_noSemanticFit, RT_model)
+RT_sem <- anova(RT_model_noSemanticFit, RT_model)
 
 # Test significance of Transitivity
 RT_model_noTransitivity <- lmer(formula = logRT ~ Condition + SemanticFit + Accuracy + (1 | Subject) + (1 + Condition || Item),
                                 data = data, REML = FALSE)
 
-anova(RT_model_noTransitivity, RT_model)
+RT_trans <- anova(RT_model_noTransitivity, RT_model)
 
 # Test significance of Accuracy
 RT_model_noAccuracy <- lmer(formula = logRT ~ Condition + SemanticFit + (1 | Subject) + (1 + Condition || Item),
                                 data = data, REML = FALSE)
 
-anova(RT_model_noAccuracy, RT_model)
+RT_acc <- anova(RT_model_noAccuracy, RT_model)
+
+# Summary Table
+library(gt)
+library(broom)
+library(broom.mixed)
+
+acc_tidy <- acc_model %>% 
+  tidy() %>% 
+  filter(effect == "fixed") %>% 
+  select(term, estimate, std.error) %>% 
+  slice(-1) %>% 
+  mutate(LRT = map(list(acc_cond, acc_sem, acc_trans),
+                   ~as.data.frame(.x)),
+         chisq = map_dbl(LRT, ~.x$Chisq[2]),
+         p = map_dbl(LRT, ~.x$`Pr(>Chisq)`[2]),
+         model = "Accuracy") %>% 
+  select(-LRT) %>% 
+  mutate(across(where(is.numeric), ~str_pad(round(.x, 2), 4, "right", "0"))) %>% 
+  mutate(p = ifelse(str_detect(p, "^0+$"), "<.001", p),
+         estimate = paste0(estimate, " (", std.error, ")")) %>% 
+  select(-std.error)
+
+RT_tidy <- RT_model %>% 
+  tidy() %>% 
+  filter(effect == "fixed") %>% 
+  select(term, estimate, std.error) %>% 
+  slice(-1) %>% 
+  mutate(LRT = map(list(RT_cond, RT_sem, RT_trans, RT_acc),
+                   ~as.data.frame(.x)),
+         chisq = map_dbl(LRT, ~.x$Chisq[2]),
+         p = map_dbl(LRT, ~.x$`Pr(>Chisq)`[2]),
+         model = "Response Time") %>% 
+  select(-LRT) %>% 
+  mutate(across(where(is.numeric), ~str_pad(round(.x, 2), 4, "right", "0"))) %>% 
+  mutate(p = ifelse(str_detect(p, "^0+$"), "<.001", p),
+         estimate = paste0(estimate, " (", std.error, ")")) %>% 
+  select(-std.error)
+
+
