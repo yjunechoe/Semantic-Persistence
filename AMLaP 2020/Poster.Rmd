@@ -1,0 +1,258 @@
+---
+title: Prosodic Focus Strengthens Semantic Persistence
+author:
+  - name: June Choe (yjunechoe@sas.upenn.edu)
+    affil: 1
+  - name: Jennifer Cole
+    affil: 2
+  - name: Masaya Yoshida
+    affil: 2
+affiliation:
+  - num: 1
+    address: Department of Linguistics, University of Pennsylvania
+  - num: 2
+    address: Department of Linguistics, Northwestern University
+column_numbers: 4
+output: 
+  posterdown::posterdown_html:
+    self_contained: false
+poster_height: "36in"
+poster_width: "48in"
+primary_colour: "#4E2A84"
+---
+
+```{css, echo=FALSE}
+.title_container {
+  height: calc(36in * 0.125);
+}
+
+.poster_body_wrap {
+  height: calc(36in * 0.85);
+}
+
+.sentence {
+  background-color: #DCDCDC;
+  padding-top: 5px;
+  padding-bottom: 1px;
+}
+
+```
+
+```{r setup, include=FALSE}
+library(knitr)
+library(png)
+library(grid)
+```
+
+# Misinterpretations of <br> Garden-Path Sentences
+
+Previous research on **post-repair representations** of **garden-path sentences** has found that readers arrive at misinterpretations despite evidence of reanalysis [1].
+
+&nbsp;&nbsp;&nbsp; <span style="font-size:30pt"><u>As Harry chewed the brown and juicy steak fell to the floor.</u></span>
+
+```{r, out.width='100%', fig.align='center', fig.height=3, echo = FALSE}
+grid.raster(readPNG("tree.png"))
+```
+
+&nbsp;&nbsp;&nbsp;&nbsp; - Q: <span style="font-size:30pt">Did Harry chew the steak? &nbsp;&nbsp;&nbsp; (**Yes**/No) </span>
+  
+At the same time, comprehenders are accurate when asked about material _outside_ the region of ambiguity.
+
+&nbsp;&nbsp;&nbsp;&nbsp; - Q: <span style="font-size:30pt">Did the steak fall to the floor? &nbsp;&nbsp;&nbsp; (**Yes**/No) </span>
+
+Suggests that comprehenders are not failing to make _any_ sense out of these sentences entirely - misinterpretations seem to be patterened and systematic.
+
+# The Locus of Misinterpretations
+
+Some proposed explanations:
+
+ 1. **_The initial semantic commitments_** made in the garden path can persist in working memory without undergoing necessary revisions [2].
+
+ 2. **_The incorrect local structure_** can linger in the syntactic representation blended/copied alongside the correct structure, licensing the misinterpretation [3].
+
+ 3. **_Surface-level heuristics_** can be adopted as a compensatory "good enough" strategy when syntactic reanalysis becomes too costly [4].
+
+More recent studies find evidence that the parser actually always succeeds in recovering the globally correct structure in reanalysis [5][6] - likely that the misinterpreation stems from the **persistence of the initial misanalysis in memory** as opposed to failures related to the syntactic structure-building process
+<br>
+
+# Research Question
+
+<p style="font-size:46pt;font-family:Arial">**Is the likelihood of misinterpretation affected by the _depth of semantic processing_ in the initial misparse?**</p>
+
+In an **auditory comprehension experiment**, we draw on _two known effects of pitch accent on semantic processing_:
+
+1. In American English, a high-rising pitch accent is often associated with semantic focus, and facilitates encoding and retrieval of referent [7].
+
+2. This interpretation of focus is sensitive to the **position of the accented word** in the prosodic phrase [8].
+
+&nbsp;&nbsp;&nbsp; _Ex._: Anna dressed the BABY.
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp; - _Anna dressed the BABY._ $\quad$ (default accent)
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp; - _Anna dressed the [$_N$ BABY]$_{F}$._ $\quad$ (contrastive focus)
+
+In garden-path sentences, this accent-to-focus relationship can facilitate an **asymmetrical interpretation of focus** over the region of ambiguity between alternative parses:
+
+<div class="sentence">
+
+&nbsp;&nbsp;&nbsp; <u>While Anna **DRESSED** the baby stopped crying.</u>
+
+&nbsp;&nbsp;&nbsp;&nbsp; - _While Anna DRESSED, the baby ..._
+<br>
+$\qquad\qquad\qquad\qquad$(default accent, early closure)
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp; - _While Anna [$_V$ DRESSED]$_{F}$ the baby, ..._
+<br>
+$\qquad\qquad\qquad\qquad$(contrastive accent, late closure)
+
+</div>
+
+But no such asymmetry when the subject is accented:
+
+<div class="sentence">
+
+&nbsp;&nbsp;&nbsp; <u>While **ANNA** dressed the baby stopped crying.</u>
+
+&nbsp;&nbsp;&nbsp;&nbsp; - _While [$_{NP}$ ANNA]$_{F}$ dressed, the baby ..._
+<br>
+$\qquad\qquad\qquad\qquad$(contrastive accent, early closure)
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp; - _While [$_{NP}$ ANNA]$_{F}$ dressed the baby, ..._
+<br>
+$\qquad\qquad\qquad\qquad$(contrastive accent, late closure)
+
+</div>
+
+We predict **lower accuracy** on comprehension questions in the **verb-accent condition**, where the intitial misanalysis in the late-closure parse is _enriched_ with focus-semantic meaning that later _requires revision_.
+
+<div class="sentence">
+
+&nbsp;&nbsp;&nbsp; Q: Was the baby dressed? &nbsp;&nbsp;&nbsp; (Yes/No)
+
+</div>
+
+# Materials
+
+Twenty-four garden-path sentences were recorded in subject/verb-accent conditions and **resynthesized** to make prosodic phrase boundary cues uninformative (to induce the garden-path effect):
+
+1. A trained male speaker produced the early- and late-closure variants of each sentence: _While Anna dressed the baby ($\emptyset$/he) slept_.
+
+```{r, out.width='70%', fig.align='center', fig.height=3, include = FALSE}
+include_graphics("raw_duration.png")
+```
+
+2. The durations of pre-boundary candidates (1<sup>st</sup> verb, 2<sup>nd</sup> noun) were resynthesized to the average of the two variants, with early-closure recordings as the source.
+
+```{r, out.width='90%', fig.align='center', fig.height=3, include = FALSE}
+include_graphics("resynth_duration.png")
+```
+
+3. Disambiguating region was spliced from the subject-accent recordings into the verb-accent recordings and the f0 contour was interpolated across the clause boundary and flattened over the main clause.
+
+```{r, out.width='100%', fig.align='center', out.height="20%", fig.show="hold", echo = FALSE}
+include_graphics("merged.png")
+```
+
+<div style="line-height: 10pt"><br></div>
+```{r echo=FALSE,out.width='100%', fig.align='center', fig.height=3, warning=FALSE}
+library(gt)
+library(knitr)
+library(kableExtra)
+resynth_table <- readRDS("resynth_table.rds")
+resynth_table %>% 
+  tab_header(title = md("**Resynthesized Measures**"),
+             subtitle = NULL) %>% 
+  tab_options(table.width = "90%",
+              table.font.size = "65%") %>% 
+  cols_align('center')
+```
+
+```{r, out.width='70%', fig.align='center', fig.height=3, include = FALSE}
+include_graphics("resynth_pitch.png")
+```
+
+<div style="line-height: 15pt"><br></div>
+
+<div style="columns:2">
+
+4. Sentences were **normed** for _transitivity bias_ (of the adjunct verb) and _semantic fit_ (of the 2nd NP as the embedded object) to control for local coherence effects.
+
+<div>
+<div style="line-height: 10pt"><br></div>
+```{r, out.width='100%', fig.align='center', fig.height=3, echo = FALSE}
+include_graphics("item_norm.png")
+```
+</div>
+
+</div>
+
+# Procedure
+<div style="line-height: 10pt"><br></div>
+
+60 online participants listened to 24 garden-path sentences with varing pitch accent location and answered a yes/no comprehension question in a 5 second window.
+
+# Results
+<div style="line-height: 10pt"><br></div>
+
+$\qquad\qquad\qquad\qquad$ <u>**Accuracy**</u> $\qquad$ <u>**Response Time**</u>
+
+|              | | **$\quad \beta\ $ (_se_)**| **$\quad$_p_** | |  **$\quad\ \ \beta\ $ (_se_)** | **$\quad$_p_** |
+|--------------|---------------|-------|-------|---------------|-------|-------|
+| *Pitch (Verb)* | |  -0.19 (.08)  | **0.044** | |  -0.009 (.008)  | 0.289 |
+| *Semantic Fit*  | |  -0.44 (.15)   | **0.006** |  | 0.031 (.014)    | **0.034** |
+| *Transitivity* | | -0.19 (.16)  | 0.238 |  | 0.035 (.015)  | **0.022** |
+| *Accuracy*     | |             |       |  | 0.065 (.021)  | **<0.001** |
+
+```{r, out.width='100%', fig.align='center', fig.height=3, include = FALSE}
+include_graphics("acc_subj_ranef.png")
+```
+
+```{r, out.width='100%', fig.align='center', fig.height=3, echo = FALSE}
+include_graphics("rainplot_padding.png")
+```
+
+# Discussion
+
+<div style="line-height:28pt">
+
+Evidence for **semantic nature** of the persistence effect:
+
+<div style="line-height:44pt">
+
+1. **Longer response times in the critical trials** compared to unambiguous fillers indicate that listeners were garden-pathed in both conditions as intended.
+
+2. **Negative effect of (verb) pitch accent on accuracy** suggests that the processing of focus semantic meaning in the garden path increased the persistence of the erroneous interpretation.
+
+3. **No response time differences between conditions** suggests that (focus) semantic processing is not necessarily tied to syntactic structure-building.
+
+4. This effect of pitch accenting on semantic persistence is significant **after controlling for local coherence effects** (transitivity bias and semantic fit).
+
+</div>
+
+Additional implications:
+
+<div style="line-height:44pt">
+
+- <u>Prosody in psycholinguistics</u>: "semantic processing" as discussed in prosody and sentence processing research may be more closely linked than previously thought.
+
+- <u>Parallel vs. Serial</u>: transitivity as a non-significant predictor of accuracy might point to an _incremental semantic processor_ acting independently in reanalysis.
+
+</div>
+
+</div>
+
+
+
+
+<div style="border:3px solid purple">
+
+<div style="text-align:center">Acknowledgments:</div>
+
+<div style="font-size:22pt; line-height:24pt">
+Thanks are due to Dan Turner for recording raw materials and the Syntax Semantics and Sentence Processing Lab and the Prosody & Speech Dynamics Lab at Northwestern for feedback on this research. This study was assisted by two grants administered by Northwestern University's Office of Undergraduate Research.
+</div>
+
+<div style="text-align:center">References:</div>
+
+<div style="font-size:16pt; line-height: 18pt">
+[1] Christianson, K., Hollingworth, A., Halliwell, J., & Ferreira, F. (2001). Thematic Roles Assigned along the Garden Path Linger. [2] Sturt, P. (2007). Semantic re-interpretation and garden path recovery. [3] Tabor, W., & Hutchins, S. (2004). Evidence for Self-Organized Sentence Processing: Digging-In Effects. [4] Ferreira, F. (2003). The misinterpretation of noncanonical sentences. [5] Slattery, T. J., Sturt, P., Christianson, K., Yoshida, M., & Ferreira, F. (2013). Lingering misinterpretations of garden path sentences arise from competing syntactic representations. [6] Huang, Y., & Ferreira, F. (2020). Is lingering misinterpretation of garden-path sentences a result of incorrect syntactic representation? [7] Fraundorf, S., Watson, D., & Benjamin, A. (2010). Recognition memory reveals just how CONTRASTIVE contrastive accenting really is. [8] Büring, D. (2016). Intonation and Meaning. </div></div>
