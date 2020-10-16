@@ -341,38 +341,70 @@ rainplot_data <- all_data %>%
            str_detect(Item, ("(Tyler|Arthur|Harry|Tommy|Carlson|Parker|Thomas|Kelly|Nathan|Connor|Jennie|Bella)")) & Accuracy == 1) %>% 
   group_by(Item, Cond, Type) %>% 
   summarize(z_RT = mean(z_RT)) %>% 
-  ungroup() %>% 
-  mutate(Type = ifelse(Type == "Critical",
-                "**Critical Items** (24)",
-                "**Filler Items*** (subset of 12)"))
+  ungroup()
 
 rainplot <- rainplot_data %>% 
-  mutate(Cond = ifelse(str_detect(Item, "^f"), paste0(Cond, "**"), Cond)) %>% 
+  mutate(Cond = ifelse(str_detect(Item, "^f"), ifelse(Cond == "Verb", "Group B", "Group A"), Cond)) %>% 
+  mutate(Cond = factor(Cond, levels = c("Group A", "Subject", "Group B", "Verb"))) %>% 
   ggplot(aes(Cond, z_RT, fill = Cond)) +
   geom_paired_raincloud(alpha = .5) +
   geom_point(aes(group = Item),
              position = position_nudge(c(.15, -.15)),
              alpha = .5, shape = 16) +
   geom_line(aes(group = Item),
-            position = position_nudge(c(.15, -.15)),
+            position = position_nudge(c(.18, -.18)),
             linetype = 3) +
   geom_boxplot(position = position_nudge(c(.07, -.07)),
                alpha = .5, width = .04, outlier.shape = " ") +
-  facet_wrap(~Type, scales = "free_x") +
-  md_theme_clean() +
-  scale_fill_manual(values = rep(c("#E1BE6A", "#40B0A6"), each = 2)) +
-  labs(title = "Response Time Distribution between Conditions by Item",
-       y = "Mean z-scored log RT", x = "Pitch Accent Condition",
-       caption = '**Response times for accurate trials on unambiguous early-closure fillers are shown.*<br>
-       ***Fillers did not differ between conditions.*') + 
-  theme(text = element_text(family = "Verdana", size = 12),
-        plot.title = element_markdown(hjust = 0.5, size = 14),
-        strip.text = element_markdown(size = 12),
-        axis.text = element_markdown(size = 10),
-        axis.title = element_markdown(size = 13),
-        plot.caption = element_markdown(size = 9),
+  facet_wrap(~Type, scales = "free_x",
+             labeller = as_labeller(c('Critical' = "Critical (garden-path)",
+                                      "Filler" = "Filler (non-garden-path)"))) +
+  geom_curve(
+    aes(x = 1.12, y = -.65, xend = 1.3, yend = -1.1),
+    data = tibble(Type = "Critical"), inherit.aes = FALSE,
+    arrow = arrow(ends = "first", length = unit(.1, "in"))
+  ) +
+  ggtext::geom_richtext(
+    aes(x = 1.32, y = -1.1), family = "Adelle",
+    data = tibble(Type = "Critical"), inherit.aes = FALSE,
+    label = "Each dot represents z-scored<br>mean log-RT for an ITEM",
+    hjust = 0, label.color = NA, fill = NA
+  ) +
+  ggpubr::geom_bracket(data = tibble(Type = "Filler"), inherit.aes = FALSE,
+    xmin = .9, xmax = 2.1, label = "",
+    y.position = -.2, tip.length = .07, hjust = 0, size = .5
+  ) +
+  ggtext::geom_richtext(
+    aes(x = .8, y = -0.1), family = "Adelle",
+    data = tibble(Type = "Filler"), inherit.aes = FALSE,
+    label = "Same fillers used across experiment groups",
+    hjust = 0, label.color = NA, fill = NA
+  ) +
+  scale_x_discrete(expand = expansion(.7)) +
+  scale_y_continuous(expand = expansion(.1), breaks = scales::pretty_breaks(5)) +
+  scale_fill_manual(values = rep(c("grey35", "#43b7c2", "grey35", "#ba5800"))) +
+  theme_classic() +
+  labs(title = "Response time distributions aggregated by item",
+       y = NULL, x = NULL) + 
+  theme(text = element_text(family = "Montserrat Medium", size = 12),
+        panel.grid.major.y = element_blank(),
+        strip.background = element_blank(),
+        plot.title.position = "plot",
+        plot.background = element_blank(),
+        plot.margin = margin(1, 1, .7, .7, 'cm'),
+        plot.title = element_markdown(size = 24,  margin = margin(0, 0, 1, 0, 'cm'), family = "Lora", face = "bold"),
+        plot.subtitle = element_text(size = 14, margin = margin(0, 0, .5, 0, 'cm')),
+        strip.text = element_markdown(size = 16, margin = margin(0, 0, .5, 0, 'cm')),
+        axis.text = element_markdown(size = 12),
+        axis.text.x.bottom = element_text(size = 16),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_text(margin = margin(0, .2, 0, 0, 'cm')),
+        axis.text.x = element_text(margin = margin(t = .3, unit = 'cm')),
+        axis.title = element_markdown(size = 16),
+        axis.title.y = element_text(angle = 0, vjust = .5, lineheight = 1.2, hjust = 0,
+                                    margin = margin(0, .5, 0, 0, 'cm')),
+        axis.title.x = element_text(margin = margin(.5, 0, 0, 0, 'cm')),
         legend.position = 0)
-
 
 
 #############################
@@ -477,7 +509,7 @@ acc_table <- tab_model(acc_model,
 ##########################
 
 # Test significance of Condition
-acc_model_noCondition <- glmer(formula = Accuracy ~ SemanticFit + Transitivity + (1 | Subject) + (1 | Item),
+acc_model_noCondition <- glmer(formula = Accuracy ~ SemanticFit + Transitivity + (1 + Condition || Subject) + (1 | Item),
                                data = data, family = binomial())
 
 acc_cond <- anova(acc_model_noCondition, acc_model)
@@ -634,7 +666,7 @@ RT_table <- tab_model(RT_model,
 ##########################
 
 # Test significance of Condition
-RT_model_noCondition <-lmer(formula = logRT ~ SemanticFit + Transitivity + Accuracy + (1 | Subject) + (1 | Item),
+RT_model_noCondition <-lmer(formula = logRT ~ SemanticFit + Transitivity + Accuracy + (1 | Subject) + (1 + Condition || Item),
                             data = data, REML = FALSE)
 
 RT_cond <- anova(RT_model_noCondition, RT_model)
@@ -668,7 +700,7 @@ acc_tidy <- acc_model %>%
   select(term, estimate, std.error) %>% 
   slice(-1) %>% 
   mutate(LRT = map(list(acc_cond, acc_sem, acc_trans),
-                   ~as.data.frame(.x)),
+                   ~as_tibble(.x)),
          chisq = map_dbl(LRT, ~.x$Chisq[2]),
          p = map_dbl(LRT, ~.x$`Pr(>Chisq)`[2]),
          model = "Accuracy") %>% 
@@ -684,7 +716,7 @@ RT_tidy <- RT_model %>%
   select(term, estimate, std.error) %>% 
   slice(-1) %>% 
   mutate(LRT = map(list(RT_cond, RT_sem, RT_trans, RT_acc),
-                   ~as.data.frame(.x)),
+                   ~as_tibble(.x)),
          chisq = map_dbl(LRT, ~.x$Chisq[2]),
          p = map_dbl(LRT, ~.x$`Pr(>Chisq)`[2]),
          model = "Response Time") %>% 
@@ -694,4 +726,12 @@ RT_tidy <- RT_model %>%
          estimate = paste0(estimate, " (", std.error, ")")) %>% 
   select(-std.error)
 
+
+acc_tidy %>% 
+  select(-5) %>% 
+  gt() %>% 
+  opt_row_striping() %>%
+  opt_all_caps() %>%
+  opt_table_font("Roboto") %>% 
+  opt_table_outline()
 
