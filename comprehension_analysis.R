@@ -2,11 +2,8 @@
 ## SETUP ##
 ###########
 
-setwd("C:/Users/jchoe/OneDrive/Active research/Thesis/experiments")
-
 library(tidyverse)
 library(see)
-library(stringr)
 library(performance)
 library(sjPlot)
 library(lme4)
@@ -135,7 +132,7 @@ data <- data %>%
 
 
 # reasponse times by trial types
-trial_type_RT_plot <- all_data %>%
+trial_type_RT_plot <- data %>%
   filter(Time < 5000) %>% 
   ggplot(aes(Type, Time)) +
   geom_violin() +
@@ -143,10 +140,10 @@ trial_type_RT_plot <- all_data %>%
   facet_wrap(~Cond)
 
 # subject accuracy by trial types
-trial_type_acc_plot <- all_data %>%
+trial_type_acc_plot <- data %>%
   group_by(Subject, Cond, Type) %>%
-  summarize(Accuracy = mean(Accuracy)) %>%
-  filter(Type == "Catch" && Accuracy != 0, !is.na(Accuracy)) %>% 
+  summarize(Accuracy = mean(Accuracy, na.rm = TRUE)) %>%
+  filter(Type != "Catch") %>% 
   ggplot(aes(Type, Accuracy)) +
   geom_boxplot() +
   geom_hline(aes(yintercept = 0.5), linetype = 2, color = "red") +
@@ -231,7 +228,7 @@ data <- data %>%
 
 data %>% 
   group_by(Cond) %>% 
-  summarize_at(c('Accuracy', 'logRT'), c(mean, sd))
+  summarize_at(c('Accuracy', 'logRT'), list(mean, sd))
 
 #######################
 ## Accuracy Data Viz ##
@@ -406,6 +403,89 @@ rainplot <- rainplot_data %>%
         axis.title.x = element_text(margin = margin(.5, 0, 0, 0, 'cm')),
         legend.position = 0)
 
+# New rainplot
+
+rainplot_critical <- all_data %>% 
+  filter(Type != "Catch") %>% 
+  filter(Type == "Critical") %>% 
+  group_by(Item, Cond) %>% 
+  summarize(Time = mean(Time)) %>% 
+  ungroup() %>% 
+  mutate(Cond = paste(Cond, "\nAccent Condition")) %>% 
+  ggplot(aes(Cond, Time)) +
+  geom_paired_raincloud(fill = "grey70") +
+  geom_point(aes(group = Item),
+             position = position_nudge(c(.15, -.15)),
+             alpha = .5, shape = 16) +
+  geom_line(aes(group = Item),
+            position = position_nudge(c(.18, -.18)),
+            linetype = 3) +
+  geom_boxplot(position = position_nudge(c(.07, -.07)),
+               alpha = .5, width = .04, outlier.shape = " ") +
+  scale_y_continuous(
+    limits = c(1300, 2600),
+    breaks = scales::pretty_breaks(5),
+    labels = function(x) {
+      reversed_labs <- rev(x)
+      last_lab <- detect_index(reversed_labs, ~!is.na(.x))
+      rev(replace(reversed_labs, last_lab, paste0(reversed_labs[last_lab], "ms")))
+    }
+  ) +
+  labs(y = NULL, x = NULL) +
+  junebug::theme_junebug_clean() +
+  theme(
+    axis.text.x = element_text(
+      lineheight = 1.2,
+      margin = margin(t = 0.2, unit = "cm")
+    ),
+    axis.text.y = element_text(
+      margin = margin(r = 0.1, unit = "cm")
+    )
+  )
+
+violin_filler <- all_data %>% 
+  filter(str_detect(Item, ("(Tyler|Arthur|Harry|Tommy|Carlson|Parker|Thomas|Kelly|Nathan|Connor|Jennie|Bella)"))) %>% 
+  group_by(Item) %>% 
+  summarize(Time = mean(Time)) %>% 
+  ggplot(aes(x = "Fillers\n(non-garden-path)", Time)) +
+  geom_boxplot(
+    width = .5,
+    outlier.alpha = 0
+  ) +
+  ggbeeswarm::geom_quasirandom(
+    alpha = .7,
+    shape = 16,
+    width = .5
+  ) +
+  coord_cartesian(xlim = c(.5, 1.5), ylim = c(1300, 2600)) +
+  junebug::theme_junebug_clean() +
+  labs(y = NULL, x = NULL) +
+  theme(
+    axis.text.x = element_text(
+      lineheight = 1.2,
+      margin = margin(t = 0.2, unit = "cm")
+    ),
+    axis.text.y = element_blank(),
+    axis.line.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+
+duration_results_combined <- (rainplot_critical + violin_filler & theme(plot.margin = margin(.3 ,.3, .3, .3, "cm"))) +
+  patchwork::plot_layout(widths = c(3, 1)) +
+  patchwork::plot_annotation(
+    title = "Response time distributions aggregated by Item",
+    theme = theme(
+      plot.title = element_text(
+        size = 16,
+        family = "Roboto Slab",
+        face = "bold",
+        margin = margin(t = 1, "cm")
+      )
+    )
+  )
+
+ggsave(filename = "duration_results_combined.png", width = 18, height = 12, scale = .4)
+  
 
 #############################
 #                           #
