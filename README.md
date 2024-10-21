@@ -8,4 +8,11 @@ This repo only contains data and script for the auditory comprehension experimen
 
 ---
 
-`CYC_2022.arrow` contains the cleaned data for the auditory comprehension experiment, added after publication for pedagogical use.
+`CYC_2022.arrow` contains the cleaned data for the auditory comprehension experiment, added after publication for pedagogical use.[^1]
+
+```r
+library(arrow)
+read_feather("https://raw.githubusercontent.com/yjunechoe/Semantic-Persistence/refs/heads/master/CYC_2022.arrow")
+```
+
+[^1]: Diagnosing convergence warnings: https://gist.github.com/yjunechoe/37e6c1300b96f7c466807cc538efbd65 
